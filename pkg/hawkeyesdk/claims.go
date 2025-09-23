@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -47,12 +48,16 @@ func (cfg *ClientSettings) CreateClaim(claim ClaimPost) (ApiResponse, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := cfg.HTTPClient.Do(req)
 	if err != nil {
 		return apiResp, fmt.Errorf("request failed: %v", err)
 	}
 	defer resp.Body.Close()
+
+	err = checkResponse(resp)
+	if err != nil {
+		return apiResp, err
+	}
 
 	err = json.NewDecoder(resp.Body).Decode(&apiResp)
 	if err != nil {
@@ -76,12 +81,16 @@ func (cfg *ClientSettings) UpdateClaim(claim ClaimPost) (ApiResponse, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := cfg.HTTPClient.Do(req)
 	if err != nil {
 		return apiResp, fmt.Errorf("request failed: %v", err)
 	}
 	defer resp.Body.Close()
+
+	err = checkResponse(resp)
+	if err != nil {
+		return apiResp, err
+	}
 
 	err = json.NewDecoder(resp.Body).Decode(&apiResp)
 	if err != nil {
@@ -91,41 +100,66 @@ func (cfg *ClientSettings) UpdateClaim(claim ClaimPost) (ApiResponse, error) {
 }
 
 func (cfg *ClientSettings) GetSingleClaim(filenumber int) (Claim, error) {
-	var claim Claim
+	var claims []Claim
 	req, err := http.NewRequest("GET", cfg.BaseUrl+fmt.Sprintf("/getclaims/%d", filenumber), nil)
 	if err != nil {
-		return claim, fmt.Errorf("failed to create request: %v", err)
+		return Claim{}, fmt.Errorf("failed to create request: %v", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := cfg.HTTPClient.Do(req)
 	if err != nil {
-		return claim, fmt.Errorf("request failed: %v", err)
+		return Claim{}, fmt.Errorf("request failed: %v", err)
 	}
 	defer resp.Body.Close()
 
-	err = json.NewDecoder(resp.Body).Decode(&claim)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return claim, fmt.Errorf("failed to decode response: %v", err)
+		return Claim{}, fmt.Errorf("failed to read response body: %v", err)
 	}
-	return claim, nil
+
+	err = checkResponse(resp)
+	if err != nil {
+		return Claim{}, err
+	}
+
+	err = json.Unmarshal(bodyBytes, &claims)
+	if err != nil {
+		return Claim{}, fmt.Errorf("failed to decode response: %v", err)
+	}
+
+	if len(claims) == 0 {
+		return Claim{}, fmt.Errorf("no claim found with filenumber %d", filenumber)
+	}
+
+	return claims[0], nil
 }
 
 func (cfg *ClientSettings) GetClaims(includeinactive bool) ([]Claim, error) {
 	var claims []Claim
-	req, err := http.NewRequest("GET", cfg.BaseUrl+fmt.Sprintf("/getclaims?includeinactive=%t", includeinactive), nil)
+	req, err := http.NewRequest("GET", cfg.BaseUrl+fmt.Sprintf("/getclaims/all/%t", includeinactive), nil)
 	if err != nil {
 		return claims, fmt.Errorf("failed to create request: %v", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := cfg.HTTPClient.Do(req)
 	if err != nil {
 		return claims, fmt.Errorf("request failed: %v", err)
 	}
 	defer resp.Body.Close()
 
-	err = json.NewDecoder(resp.Body).Decode(&claims)
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return claims, fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	err = checkResponse(resp)
+	if err != nil {
+		return claims, err
+	}
+
+	err = json.Unmarshal(bodyBytes, &claims)
 	if err != nil {
 		return claims, fmt.Errorf("failed to decode response: %v", err)
 	}

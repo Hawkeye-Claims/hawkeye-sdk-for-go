@@ -37,8 +37,7 @@ func (cfg *ClientSettings) UploadFile(filenumber int, fileurl string, category D
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
 
-	client := http.Client{}
-	resp, err := client.Do(req)
+	resp, err := cfg.HTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %v", err)
 	}

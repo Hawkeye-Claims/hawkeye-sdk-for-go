@@ -1,5 +1,11 @@
 package hawkeyesdk
 
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
+
 type ApiResponse struct {
 	Filenumber int    `json:"filenumber"`
 	Message    string `json:"message"`
@@ -114,8 +120,8 @@ type Claim struct {
 	TotalLoss            bool       `json:"totalloss,omitempty"`
 	ContinuedRentalAmt   float32    `json:"continuedrentalamt,omitempty"`
 	DVAmt                float32    `json:"dv_amt,omitempty"`
-	LiabilityAccepted    bool       `json:"liabilityaccepted,omitempty"`
-	LiabilityDenied      bool       `json:"liabilitydenied,omitempty"`
+	LiabilityAccepted    string     `json:"liabilityaccepted,omitempty"`
+	LiabilityDenied      string     `json:"liabilitydenied,omitempty"`
 	SettlementPD         float32    `json:"settlement_pd,omitempty"`
 	SettlementSalvage    float32    `json:"settlement_salvage,omitempty"`
 	SettlementCR         float32    `json:"settlement_cr,omitempty"`
@@ -187,7 +193,7 @@ func (d DocType) String() string {
 	case DRIVER_EXCHANGE:
 		return "Driver Exchange"
 	case DRIVERS_LICENSE:
-		return "Driver's License"
+		return "Drivers License"
 	case DV_FORM:
 		return "DV Form"
 	case EMAIL:
@@ -249,7 +255,7 @@ func (d DocType) String() string {
 	case VEHICLE_SPECIFICATIONS:
 		return "Vehicle Specifications"
 	case VENDOR_INVOICE:
-		return "Vendor Invoice"
+		return "Vendor Inv"
 	case INTERIM_INVOICE:
 		return "Interim Invoice"
 	case FINAL_INVOICE:
@@ -257,4 +263,26 @@ func (d DocType) String() string {
 	default:
 		return "Uncategorized API Document"
 	}
+}
+
+func (d *DocType) UnmarshalJSON(data []byte) error {
+	var i int
+	if err := json.Unmarshal(data, &i); err == nil {
+		*d = DocType(i)
+		return nil
+	}
+
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	s = strings.TrimSpace(s)
+	for dt := DEFAULT; dt <= FINAL_INVOICE; dt++ {
+		if strings.EqualFold(s, dt.String()) {
+			*d = dt
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid document type: %s", s)
 }

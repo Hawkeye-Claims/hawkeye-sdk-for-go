@@ -33,8 +33,7 @@ func (cfg *ClientSettings) CreateLogTrail(filenumber int, activity string, date 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
 
-	client := http.Client{}
-	resp, err := client.Do(req)
+	resp, err := cfg.HTTPClient.Do(req)
 	if err != nil {
 		return apiResp, fmt.Errorf("request failed: %v", err)
 	}
