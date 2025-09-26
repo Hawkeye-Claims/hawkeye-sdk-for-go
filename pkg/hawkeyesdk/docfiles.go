@@ -4,10 +4,45 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
-func (cfg *ClientSettings) UploadFile(filenumber int, fileurl string, category DocType, visibleToClient bool, notes string) error {
+type UploadFileOption func(*uploadFileOptions)
+
+type uploadFileOptions struct {
+	category        DocType
+	visibleToClient bool
+	notes           string
+}
+
+func WithCategory(category DocType) UploadFileOption {
+	return func(opts *uploadFileOptions) {
+		opts.category = category
+	}
+}
+
+func WithVisibleToClient(visible bool) UploadFileOption {
+	return func(opts *uploadFileOptions) {
+		opts.visibleToClient = visible
+	}
+}
+
+func WithNotes(notes string) UploadFileOption {
+	return func(opts *uploadFileOptions) {
+		opts.notes = notes
+	}
+}
+
+func (cfg *ClientSettings) UploadFile(filenumber int, fileurl string, opts ...UploadFileOption) (ApiResponse, error) {
+	options := uploadFileOptions{
+		category:        DEFAULT,
+		visibleToClient: false,
+		notes:           "",
+	}
+	for _, opt := range opts {
+		opt(&options)
+	}
 	type PostData struct {
 		Filenumber      int    `json:"filenumber"`
 		Link            string `json:"link"`
@@ -18,20 +53,20 @@ func (cfg *ClientSettings) UploadFile(filenumber int, fileurl string, category D
 	postData := PostData{
 		Filenumber:      filenumber,
 		Link:            fileurl,
-		Category:        category.String(),
-		VisibleToClient: visibleToClient,
-		Notes:           notes,
+		Category:        options.category.String(),
+		VisibleToClient: options.visibleToClient,
+		Notes:           options.notes,
 	}
 	var apiResp ApiResponse
 
 	jsonData, err := json.Marshal(postData)
 	if err != nil {
-		return fmt.Errorf("failed to marshal post data: %v", err)
+		return apiResp, fmt.Errorf("failed to marshal post data: %v", err)
 	}
 
 	req, err := http.NewRequest("POST", cfg.BaseUrl+"/savefile", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %v", err)
+		return apiResp, fmt.Errorf("failed to create request: %v", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -39,17 +74,22 @@ func (cfg *ClientSettings) UploadFile(filenumber int, fileurl string, category D
 
 	resp, err := cfg.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("request failed: %v", err)
+		return apiResp, fmt.Errorf("request failed: %v", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	_, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return apiResp, fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&apiResp)
+	err = checkResponse(resp)
 	if err != nil {
-		return fmt.Errorf("failed to decode response: %v", err)
+		return apiResp, err
 	}
-	return nil
+
+	apiResp.Message = "File uploaded successfully"
+	apiResp.Success = true
+
+	return apiResp, nil
 }

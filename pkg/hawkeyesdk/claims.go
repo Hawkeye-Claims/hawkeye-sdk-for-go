@@ -2,6 +2,7 @@ package hawkeyesdk
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,14 +34,26 @@ type ClaimPost struct {
 	Note               string `json:"note,omitempty"`
 }
 
-func (cfg *ClientSettings) CreateClaim(claim ClaimPost) (ApiResponse, error) {
+type GetClaimsOption func(*getClaimsOptions)
+
+type getClaimsOptions struct {
+	includeInactive bool
+}
+
+func WithIncludeInactive(include bool) GetClaimsOption {
+	return func(opts *getClaimsOptions) {
+		opts.includeInactive = include
+	}
+}
+
+func (cfg *ClientSettings) CreateClaim(ctx context.Context, claim ClaimPost) (ApiResponse, error) {
 	var apiResp ApiResponse
 	jsonData, err := json.Marshal(claim)
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to marshal claim data: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", cfg.BaseUrl+"/createclaim", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseUrl+"/createclaim", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to create request: %v", err)
 	}
@@ -54,26 +67,31 @@ func (cfg *ClientSettings) CreateClaim(claim ClaimPost) (ApiResponse, error) {
 	}
 	defer resp.Body.Close()
 
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return apiResp, fmt.Errorf("failed to read response body: %v", err)
+	}
+
 	err = checkResponse(resp)
 	if err != nil {
 		return apiResp, err
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&apiResp)
+	err = json.Unmarshal(bodyBytes, &apiResp)
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to decode response: %v", err)
 	}
 	return apiResp, nil
 }
 
-func (cfg *ClientSettings) UpdateClaim(claim ClaimPost) (ApiResponse, error) {
+func (cfg *ClientSettings) UpdateClaim(ctx context.Context, claim ClaimPost) (ApiResponse, error) {
 	var apiResp ApiResponse
 	jsonData, err := json.Marshal(claim)
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to marshal claim data: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", cfg.BaseUrl+"/updateclaim", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseUrl+"/updateclaim", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to create request: %v", err)
 	}
@@ -87,19 +105,24 @@ func (cfg *ClientSettings) UpdateClaim(claim ClaimPost) (ApiResponse, error) {
 	}
 	defer resp.Body.Close()
 
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return apiResp, fmt.Errorf("failed to read response body: %v", err)
+	}
+
 	err = checkResponse(resp)
 	if err != nil {
 		return apiResp, err
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&apiResp)
+	err = json.Unmarshal(bodyBytes, &apiResp)
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to decode response: %v", err)
 	}
 	return apiResp, nil
 }
 
-func (cfg *ClientSettings) GetSingleClaim(filenumber int) (Claim, error) {
+func (cfg *ClientSettings) GetSingleClaim(ctx context.Context, filenumber int) (Claim, error) {
 	var claims []Claim
 	req, err := http.NewRequest("GET", cfg.BaseUrl+fmt.Sprintf("/getclaims/%d", filenumber), nil)
 	if err != nil {
@@ -135,9 +158,15 @@ func (cfg *ClientSettings) GetSingleClaim(filenumber int) (Claim, error) {
 	return claims[0], nil
 }
 
-func (cfg *ClientSettings) GetClaims(includeinactive bool) ([]Claim, error) {
+func (cfg *ClientSettings) GetClaims(ctx context.Context, opts ...GetClaimsOption) ([]Claim, error) {
+	options := getClaimsOptions{
+		includeInactive: false,
+	}
+	for _, opt := range opts {
+		opt(&options)
+	}
 	var claims []Claim
-	req, err := http.NewRequest("GET", cfg.BaseUrl+fmt.Sprintf("/getclaims/all/%t", includeinactive), nil)
+	req, err := http.NewRequest("GET", cfg.BaseUrl+fmt.Sprintf("/getclaims/all/%t", options.includeInactive), nil)
 	if err != nil {
 		return claims, fmt.Errorf("failed to create request: %v", err)
 	}

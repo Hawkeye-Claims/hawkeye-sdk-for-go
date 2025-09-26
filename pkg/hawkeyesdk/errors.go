@@ -2,6 +2,7 @@ package hawkeyesdk
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -29,8 +30,15 @@ func checkResponse(resp *http.Response) error {
 
 	resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
+	var apiResp ApiResponse
+
+	err = json.Unmarshal(bodyBytes, &apiResp)
+	if err != nil {
+		return fmt.Errorf("failed to decode response: %v", err)
+	}
+
 	return &APIError{
 		StatusCode: resp.StatusCode,
-		Message:    string(bodyBytes),
+		Message:    apiResp.Message,
 	}
 }

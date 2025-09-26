@@ -2,12 +2,33 @@ package hawkeyesdk
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"time"
 )
 
-func (cfg *ClientSettings) CreateLogTrail(filenumber int, activity string, date string) (ApiResponse, error) {
+type LogTrailOption func(*logTrailOptions)
+
+type logTrailOptions struct {
+	date string
+}
+
+func WithDate(date string) LogTrailOption {
+	return func(opts *logTrailOptions) {
+		opts.date = date
+	}
+}
+
+func (cfg *ClientSettings) CreateLogTrail(ctx context.Context, filenumber int, activity string, opts ...LogTrailOption) (ApiResponse, error) {
+	options := logTrailOptions{
+		date: time.Now().Format("03/31/2025"),
+	}
+	for _, opt := range opts {
+		opt(&options)
+	}
 	type PostData struct {
 		Filenumber int    `json:"filenumber"`
 		Activity   string `json:"activity"`
@@ -16,7 +37,7 @@ func (cfg *ClientSettings) CreateLogTrail(filenumber int, activity string, date 
 	postData := PostData{
 		Filenumber: filenumber,
 		Activity:   activity,
-		Date:       date,
+		Date:       options.date,
 	}
 	var apiResp ApiResponse
 
@@ -25,7 +46,7 @@ func (cfg *ClientSettings) CreateLogTrail(filenumber int, activity string, date 
 		return apiResp, fmt.Errorf("failed to marshal post data: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", cfg.BaseUrl+"/createLogTailEntry", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseUrl+"/createLogTailEntry", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to create request: %v", err)
 	}
@@ -39,7 +60,17 @@ func (cfg *ClientSettings) CreateLogTrail(filenumber int, activity string, date 
 	}
 	defer resp.Body.Close()
 
-	err = json.NewDecoder(resp.Body).Decode(&apiResp)
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return apiResp, fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	err = checkResponse(resp)
+	if err != nil {
+		return apiResp, err
+	}
+
+	err = json.Unmarshal(bodyBytes, &apiResp)
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to decode response: %v", err)
 	}
