@@ -34,7 +34,16 @@ func WithNotes(notes string) UploadFileOption {
 	}
 }
 
-func (cfg *ClientSettings) UploadFile(filenumber int, fileurl string, opts ...UploadFileOption) (ApiResponse, error) {
+type DocFilesService struct {
+	client *ClientSettings
+}
+
+func NewDocFilesService(client *ClientSettings) *DocFilesService {
+	client.ensureHTTPClient()
+	return &DocFilesService{client: client}
+}
+
+func (s *DocFilesService) UploadFile(filenumber int, fileurl string, opts ...UploadFileOption) (ApiResponse, error) {
 	options := uploadFileOptions{
 		category:        DEFAULT,
 		visibleToClient: false,
@@ -43,53 +52,52 @@ func (cfg *ClientSettings) UploadFile(filenumber int, fileurl string, opts ...Up
 	for _, opt := range opts {
 		opt(&options)
 	}
-	type PostData struct {
+
+	type postData struct {
 		Filenumber      int    `json:"filenumber"`
 		Link            string `json:"link"`
 		Category        string `json:"category"`
 		VisibleToClient bool   `json:"visible_to_client"`
 		Notes           string `json:"notes"`
 	}
-	postData := PostData{
+
+	payload := postData{
 		Filenumber:      filenumber,
 		Link:            fileurl,
 		Category:        options.category.String(),
 		VisibleToClient: options.visibleToClient,
 		Notes:           options.notes,
 	}
-	var apiResp ApiResponse
 
-	jsonData, err := json.Marshal(postData)
+	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to marshal post data: %v", err)
+		return ApiResponse{}, fmt.Errorf("failed to marshal post data: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", cfg.BaseUrl+"/savefile", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, s.client.BaseUrl+"/savefile", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to create request: %v", err)
+		return ApiResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.client.AuthToken))
 
-	resp, err := cfg.HTTPClient.Do(req)
+	resp, err := s.client.HTTPClient.Do(req)
 	if err != nil {
-		return apiResp, fmt.Errorf("request failed: %v", err)
+		return ApiResponse{}, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	_, err = io.ReadAll(resp.Body)
-	if err != nil {
-		return apiResp, fmt.Errorf("failed to read response body: %v", err)
+	if _, err := io.ReadAll(resp.Body); err != nil {
+		return ApiResponse{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	err = checkResponse(resp)
-	if err != nil {
-		return apiResp, err
+	if err := checkResponse(resp); err != nil {
+		return ApiResponse{}, err
 	}
 
-	apiResp.Message = "File uploaded successfully"
-	apiResp.Success = true
-
-	return apiResp, nil
+	return ApiResponse{
+		Message: "File uploaded successfully",
+		Success: true,
+	}, nil
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type ClaimPost struct {
@@ -34,6 +35,43 @@ type ClaimPost struct {
 	Note               string `json:"note,omitempty"`
 }
 
+var claimPostRequiredFieldDefs = []struct {
+	name     string
+	accessor func(ClaimPost) string
+}{
+	{name: "RenterName", accessor: func(c ClaimPost) string { return c.RenterName }},
+	{name: "InsuranceCompany", accessor: func(c ClaimPost) string { return c.InsuranceCompany }},
+	{name: "DateOfLoss", accessor: func(c ClaimPost) string { return c.DateOfLoss }},
+	{name: "VehMake", accessor: func(c ClaimPost) string { return c.VehMake }},
+	{name: "VehModel", accessor: func(c ClaimPost) string { return c.VehModel }},
+	{name: "VehColor", accessor: func(c ClaimPost) string { return c.VehColor }},
+	{name: "VehVIN", accessor: func(c ClaimPost) string { return c.VehVIN }},
+}
+
+func ClaimPostRequiredFields() []string {
+	fields := make([]string, len(claimPostRequiredFieldDefs))
+	for i, def := range claimPostRequiredFieldDefs {
+		fields[i] = def.name
+	}
+	return fields
+}
+
+func (c ClaimPost) ValidateForCreate() error {
+	var missing []string
+
+	for _, def := range claimPostRequiredFieldDefs {
+		if strings.TrimSpace(def.accessor(c)) == "" {
+			missing = append(missing, def.name)
+		}
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required fields: %s", strings.Join(missing, ", "))
+	}
+
+	return nil
+}
+
 type GetClaimsOption func(*getClaimsOptions)
 
 type getClaimsOptions struct {
@@ -46,109 +84,122 @@ func WithIncludeInactive(include bool) GetClaimsOption {
 	}
 }
 
-func (cfg *ClientSettings) CreateClaim(ctx context.Context, claim ClaimPost) (ApiResponse, error) {
+type ClaimsService struct {
+	client *ClientSettings
+}
+
+func NewClaimsService(client *ClientSettings) *ClaimsService {
+	client.ensureHTTPClient()
+	return &ClaimsService{client: client}
+}
+
+func (s *ClaimsService) CreateClaim(ctx context.Context, claim ClaimPost) (ApiResponse, error) {
 	var apiResp ApiResponse
-	jsonData, err := json.Marshal(claim)
-	if err != nil {
-		return apiResp, fmt.Errorf("failed to marshal claim data: %v", err)
+
+	if err := claim.ValidateForCreate(); err != nil {
+		return apiResp, fmt.Errorf("claim validation failed: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseUrl+"/createclaim", bytes.NewBuffer(jsonData))
+	jsonData, err := json.Marshal(claim)
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to create request: %v", err)
+		return apiResp, fmt.Errorf("failed to marshal claim data: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.client.BaseUrl+"/createclaim", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return apiResp, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.client.AuthToken))
 
-	resp, err := cfg.HTTPClient.Do(req)
+	resp, err := s.client.HTTPClient.Do(req)
 	if err != nil {
-		return apiResp, fmt.Errorf("request failed: %v", err)
+		return apiResp, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to read response body: %v", err)
+		return apiResp, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	err = checkResponse(resp)
-	if err != nil {
+	if err := checkResponse(resp); err != nil {
 		return apiResp, err
 	}
 
-	err = json.Unmarshal(bodyBytes, &apiResp)
-	if err != nil {
-		return apiResp, fmt.Errorf("failed to decode response: %v", err)
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
+		return apiResp, fmt.Errorf("failed to decode response: %w", err)
 	}
+
 	return apiResp, nil
 }
 
-func (cfg *ClientSettings) UpdateClaim(ctx context.Context, claim ClaimPost) (ApiResponse, error) {
+func (s *ClaimsService) UpdateClaim(ctx context.Context, claim ClaimPost) (ApiResponse, error) {
 	var apiResp ApiResponse
+
 	jsonData, err := json.Marshal(claim)
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to marshal claim data: %v", err)
+		return apiResp, fmt.Errorf("failed to marshal claim data: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseUrl+"/updateclaim", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.client.BaseUrl+"/updateclaim", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to create request: %v", err)
+		return apiResp, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.client.AuthToken))
 
-	resp, err := cfg.HTTPClient.Do(req)
+	resp, err := s.client.HTTPClient.Do(req)
 	if err != nil {
-		return apiResp, fmt.Errorf("request failed: %v", err)
+		return apiResp, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to read response body: %v", err)
+		return apiResp, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	err = checkResponse(resp)
-	if err != nil {
+	if err := checkResponse(resp); err != nil {
 		return apiResp, err
 	}
 
-	err = json.Unmarshal(bodyBytes, &apiResp)
-	if err != nil {
-		return apiResp, fmt.Errorf("failed to decode response: %v", err)
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
+		return apiResp, fmt.Errorf("failed to decode response: %w", err)
 	}
+
 	return apiResp, nil
 }
 
-func (cfg *ClientSettings) GetSingleClaim(ctx context.Context, filenumber int) (Claim, error) {
+func (s *ClaimsService) GetSingleClaim(ctx context.Context, filenumber int) (Claim, error) {
 	var claims []Claim
-	req, err := http.NewRequest("GET", cfg.BaseUrl+fmt.Sprintf("/getclaims/%d", filenumber), nil)
-	if err != nil {
-		return Claim{}, fmt.Errorf("failed to create request: %v", err)
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
 
-	resp, err := cfg.HTTPClient.Do(req)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.client.BaseUrl+fmt.Sprintf("/getclaims/%d", filenumber), nil)
 	if err != nil {
-		return Claim{}, fmt.Errorf("request failed: %v", err)
+		return Claim{}, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.client.AuthToken))
+
+	resp, err := s.client.HTTPClient.Do(req)
+	if err != nil {
+		return Claim{}, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return Claim{}, fmt.Errorf("failed to read response body: %v", err)
+		return Claim{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	err = checkResponse(resp)
-	if err != nil {
+	if err := checkResponse(resp); err != nil {
 		return Claim{}, err
 	}
 
-	err = json.Unmarshal(bodyBytes, &claims)
-	if err != nil {
-		return Claim{}, fmt.Errorf("failed to decode response: %v", err)
+	if err := json.Unmarshal(bodyBytes, &claims); err != nil {
+		return Claim{}, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if len(claims) == 0 {
@@ -158,39 +209,38 @@ func (cfg *ClientSettings) GetSingleClaim(ctx context.Context, filenumber int) (
 	return claims[0], nil
 }
 
-func (cfg *ClientSettings) GetClaims(ctx context.Context, opts ...GetClaimsOption) ([]Claim, error) {
-	options := getClaimsOptions{
-		includeInactive: false,
-	}
+func (s *ClaimsService) GetClaims(ctx context.Context, opts ...GetClaimsOption) ([]Claim, error) {
+	options := getClaimsOptions{includeInactive: false}
 	for _, opt := range opts {
 		opt(&options)
 	}
-	var claims []Claim
-	req, err := http.NewRequest("GET", cfg.BaseUrl+fmt.Sprintf("/getclaims/all/%t", options.includeInactive), nil)
-	if err != nil {
-		return claims, fmt.Errorf("failed to create request: %v", err)
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
 
-	resp, err := cfg.HTTPClient.Do(req)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.client.BaseUrl+fmt.Sprintf("/getclaims/all/%t", options.includeInactive), nil)
 	if err != nil {
-		return claims, fmt.Errorf("request failed: %v", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.client.AuthToken))
+
+	resp, err := s.client.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return claims, fmt.Errorf("failed to read response body: %v", err)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	err = checkResponse(resp)
-	if err != nil {
-		return claims, err
+	if err := checkResponse(resp); err != nil {
+		return nil, err
 	}
 
-	err = json.Unmarshal(bodyBytes, &claims)
-	if err != nil {
-		return claims, fmt.Errorf("failed to decode response: %v", err)
+	var claims []Claim
+	if err := json.Unmarshal(bodyBytes, &claims); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
+
 	return claims, nil
 }

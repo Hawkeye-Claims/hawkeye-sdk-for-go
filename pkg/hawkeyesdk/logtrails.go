@@ -22,57 +22,67 @@ func WithDate(date string) LogTrailOption {
 	}
 }
 
-func (cfg *ClientSettings) CreateLogTrail(ctx context.Context, filenumber int, activity string, opts ...LogTrailOption) (ApiResponse, error) {
+type LogTrailsService struct {
+	client *ClientSettings
+}
+
+func NewLogTrailsService(client *ClientSettings) *LogTrailsService {
+	client.ensureHTTPClient()
+	return &LogTrailsService{client: client}
+}
+
+func (s *LogTrailsService) CreateLogTrail(ctx context.Context, filenumber int, activity string, opts ...LogTrailOption) (ApiResponse, error) {
 	options := logTrailOptions{
-		date: time.Now().Format("03/31/2025"),
+		date: time.Now().Format("01/02/2006"),
 	}
 	for _, opt := range opts {
 		opt(&options)
 	}
-	type PostData struct {
+
+	type postData struct {
 		Filenumber int    `json:"filenumber"`
 		Activity   string `json:"activity"`
 		Date       string `json:"date"`
 	}
-	postData := PostData{
+
+	payload := postData{
 		Filenumber: filenumber,
 		Activity:   activity,
 		Date:       options.date,
 	}
-	var apiResp ApiResponse
 
-	jsonData, err := json.Marshal(postData)
+	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to marshal post data: %v", err)
+		return ApiResponse{}, fmt.Errorf("failed to marshal post data: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", cfg.BaseUrl+"/createLogTailEntry", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.client.BaseUrl+"/createLogTailEntry", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to create request: %v", err)
+		return ApiResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AuthToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.client.AuthToken))
 
-	resp, err := cfg.HTTPClient.Do(req)
+	resp, err := s.client.HTTPClient.Do(req)
 	if err != nil {
-		return apiResp, fmt.Errorf("request failed: %v", err)
+		return ApiResponse{}, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return apiResp, fmt.Errorf("failed to read response body: %v", err)
+		return ApiResponse{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	err = checkResponse(resp)
-	if err != nil {
-		return apiResp, err
+	if err := checkResponse(resp); err != nil {
+		return ApiResponse{}, err
 	}
 
-	err = json.Unmarshal(bodyBytes, &apiResp)
-	if err != nil {
-		return apiResp, fmt.Errorf("failed to decode response: %v", err)
+	var apiResp ApiResponse
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
+		return ApiResponse{}, fmt.Errorf("failed to decode response: %w", err)
 	}
+
 	return apiResp, nil
 }
