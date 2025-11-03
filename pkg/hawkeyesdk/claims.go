@@ -16,7 +16,7 @@ type ClaimPost struct {
 	RenterName         string `json:"rentername"`
 	RenterPhone        string `json:"renterphone,omitempty"`
 	RenterEmail        string `json:"renteremail,omitempty"`
-	InsuranceCompany   string `json:"insurancecompany"`
+	InsCompaniesID     string `json:"inscompaniesid"`
 	ClaimNumber        string `json:"claimnumber,omitempty"`
 	InsuredName        string `json:"insuredname,omitempty"`
 	PolicyNumber       string `json:"policynumber,omitempty"`
@@ -40,7 +40,7 @@ var claimPostRequiredFieldDefs = []struct {
 	accessor func(ClaimPost) string
 }{
 	{name: "RenterName", accessor: func(c ClaimPost) string { return c.RenterName }},
-	{name: "InsuranceCompany", accessor: func(c ClaimPost) string { return c.InsuranceCompany }},
+	{name: "InsCompaniesID", accessor: func(c ClaimPost) string { return c.InsCompaniesID }},
 	{name: "DateOfLoss", accessor: func(c ClaimPost) string { return c.DateOfLoss }},
 	{name: "VehMake", accessor: func(c ClaimPost) string { return c.VehMake }},
 	{name: "VehModel", accessor: func(c ClaimPost) string { return c.VehModel }},

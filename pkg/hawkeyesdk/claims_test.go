@@ -32,8 +32,8 @@ func TestClaimsService_CreateClaim_Success(t *testing.T) {
 		if body.RenterName != "Test Renter" {
 			t.Fatalf("unexpected renter name: %s", body.RenterName)
 		}
-		if body.InsuranceCompany != "Hawkeye" {
-			t.Fatalf("unexpected insurance company: %s", body.InsuranceCompany)
+		if body.InsCompaniesID != "Hawkeye" {
+			t.Fatalf("unexpected insurance company: %s", body.InsCompaniesID)
 		}
 		if body.VehVIN != "VIN123" {
 			t.Fatalf("unexpected VIN: %s", body.VehVIN)
@@ -52,13 +52,13 @@ func TestClaimsService_CreateClaim_Success(t *testing.T) {
 	service := NewClaimsService(client)
 
 	resp, err := service.CreateClaim(context.Background(), ClaimPost{
-		RenterName:       "Test Renter",
-		InsuranceCompany: "Hawkeye",
-		DateOfLoss:       "2024-01-01",
-		VehMake:          "Ford",
-		VehModel:         "F150",
-		VehColor:         "Blue",
-		VehVIN:           "VIN123",
+		RenterName:     "Test Renter",
+		InsCompaniesID: "Hawkeye",
+		DateOfLoss:     "2024-01-01",
+		VehMake:        "Ford",
+		VehModel:       "F150",
+		VehColor:       "Blue",
+		VehVIN:         "VIN123",
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -86,13 +86,13 @@ func TestClaimsService_CreateClaim_HTTPError(t *testing.T) {
 	service := NewClaimsService(client)
 
 	_, err := service.CreateClaim(context.Background(), ClaimPost{
-		RenterName:       "Test Renter",
-		InsuranceCompany: "Hawkeye",
-		DateOfLoss:       "2024-01-01",
-		VehMake:          "Ford",
-		VehModel:         "F150",
-		VehColor:         "Blue",
-		VehVIN:           "VIN123",
+		RenterName:     "Test Renter",
+		InsCompaniesID: "Hawkeye",
+		DateOfLoss:     "2024-01-01",
+		VehMake:        "Ford",
+		VehModel:       "F150",
+		VehColor:       "Blue",
+		VehVIN:         "VIN123",
 	})
 	if err == nil {
 		t.Fatalf("expected error, got nil")
@@ -111,13 +111,13 @@ func TestClaimsService_CreateClaim_MissingRequiredFields(t *testing.T) {
 	service := NewClaimsService(client)
 
 	_, err := service.CreateClaim(context.Background(), ClaimPost{
-		RenterName:       "Test Renter",
-		InsuranceCompany: "Hawkeye",
-		DateOfLoss:       "2024-01-01",
-		VehMake:          "Ford",
-		VehModel:         "F150",
-		VehColor:         "Blue",
-		VehVIN:           "",
+		RenterName:     "Test Renter",
+		InsCompaniesID: "Hawkeye",
+		DateOfLoss:     "2024-01-01",
+		VehMake:        "Ford",
+		VehModel:       "F150",
+		VehColor:       "Blue",
+		VehVIN:         "",
 	})
 	if err == nil {
 		t.Fatalf("expected validation error, got nil")
@@ -158,7 +158,7 @@ func TestClaimPostRequiredFields(t *testing.T) {
 
 	expected := []string{
 		"RenterName",
-		"InsuranceCompany",
+		"InsCompaniesID",
 		"DateOfLoss",
 		"VehMake",
 		"VehModel",
