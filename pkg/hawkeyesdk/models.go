@@ -88,6 +88,12 @@ type LogTrail struct {
 	User     string `json:"user"`
 }
 
+type InsCompany struct {
+	Id          int    `json:"id"`
+	Name        string `json:"name"`
+	Probability int    `json:"probability,omitempty"`
+}
+
 type Claim struct {
 	Filenumber           int        `json:"filenumber,omitempty"`
 	CustomerName         string     `json:"customername,omitempty"`
