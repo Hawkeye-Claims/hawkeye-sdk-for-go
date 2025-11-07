@@ -8,6 +8,7 @@ A lightweight Go client for interacting with the Hawkeye Claims API. The SDK wra
 - 📁 Claims service with client-side validation for required fields and typed response models.
 - 📄 Document upload helpers with optional metadata (category, visibility, notes).
 - 📝 Log trail entry creation with customizable timestamps.
+- 🏢 Insurance companies lookup with search and filtering capabilities.
 - 🧪 Comprehensive unit tests using `httptest` for safe local development.
 
 ## Installation
@@ -43,13 +44,13 @@ func main() {
     // client := hawkeyesdk.NewHawkeyeClient("<your-api-token>", hawkeyesdk.WithEnvironment(hawkeyesdk.DEV))
 
     claim := hawkeyesdk.ClaimPost{
-        RenterName:       "Test Renter",
-        InsuranceCompany: "Hawkeye",
-        DateOfLoss:       "2024-01-01",
-        VehMake:          "Ford",
-        VehModel:         "F150",
-        VehColor:         "Blue",
-        VehVIN:           "VIN123",
+        RenterName:     "Test Renter",
+        InsCompaniesID: "Hawkeye Insurance",
+        DateOfLoss:     "2024-01-01",
+        VehMake:        "Ford",
+        VehModel:       "F150",
+        VehColor:       "Blue",
+        VehVIN:         "VIN123",
     }
 
     resp, err := client.Claims.CreateClaim(context.Background(), claim)
@@ -82,10 +83,26 @@ When creating a claim, the SDK validates the required fields before sending the 
 
 ```go
 required := hawkeyesdk.ClaimPostRequiredFields()
-// []string{"RenterName", "InsuranceCompany", "DateOfLoss", "VehMake", "VehModel", "VehColor", "VehVIN"}
+// []string{"RenterName", "InsCompaniesID", "DateOfLoss", "VehMake", "VehModel", "VehColor", "VehVIN"}
 ```
 
 If validation fails, the call returns an error that wraps the missing fields so you can surface friendly messages to your users.
+
+### Insurance companies
+
+Query the list of insurance companies available in the Hawkeye system:
+
+```go
+companies, err := client.InsCompanies.GetInsuranceCompanies(ctx)
+
+// Search with a query and specify limit (max 20, defaults to 5)
+companies, err := client.InsCompanies.GetInsuranceCompanies(
+    ctx,
+    hawkeyesdk.WithQueryParameters("State Farm", 10),
+)
+```
+
+The service returns an array of `InsCompany` structs containing the company ID, name, and optional probability score (used for search ranking). Use the company ID when creating or updating claims via the `InsCompaniesID` field.
 
 ### Document files
 
@@ -154,6 +171,7 @@ pkg/
     claims.go          // claim management client & validation helpers
     docfiles.go        // document upload client
     logtrails.go       // log trail entry client
+    inscompanies.go    // insurance companies lookup client
     models.go          // shared response/request models and enums
     errors.go          // API error translation helpers
     client.go          // root client wiring for all services

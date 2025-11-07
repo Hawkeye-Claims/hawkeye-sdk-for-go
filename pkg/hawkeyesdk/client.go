@@ -9,9 +9,10 @@ type ClientSettings struct {
 	HTTPClient *http.Client
 
 	// Services
-	Claims    *ClaimsService
-	DocFiles  *DocFilesService
-	LogTrails *LogTrailsService
+	Claims       *ClaimsService
+	DocFiles     *DocFilesService
+	LogTrails    *LogTrailsService
+	InsCompanies *InsCompaniesService
 }
 
 type Environment string
@@ -61,4 +62,5 @@ func (cfg *ClientSettings) initServices() {
 	cfg.Claims = NewClaimsService(cfg)
 	cfg.DocFiles = NewDocFilesService(cfg)
 	cfg.LogTrails = NewLogTrailsService(cfg)
+	cfg.InsCompanies = NewInsCompaniesService(cfg)
 }
