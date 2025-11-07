@@ -107,7 +107,7 @@ func TestInsCompaniesService_GetInsuranceCompanies_WithQuery(t *testing.T) {
 	}
 }
 
-func TestInsCompaniesService_GetInsuranceCompanies_LimitEnformcement(t *testing.T) {
+func TestInsCompaniesService_GetInsuranceCompanies_LimitEnforcement(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
