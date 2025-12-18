@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -238,6 +239,86 @@ func (s *ClaimsService) GetClaims(ctx context.Context, opts ...GetClaimsOption) 
 	}
 
 	var claims []Claim
+	if err := json.Unmarshal(bodyBytes, &claims); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return claims, nil
+}
+
+// The below applies only to Admin API users
+type GetAdminClaimsOption func(*getAdminClaimsOptions)
+
+type getAdminClaimsOptions struct {
+	filenumber      *int
+	includeInactive bool
+	docfiles        bool
+	logtrail        bool
+}
+
+func WithFilenumber(filenumber *int) GetAdminClaimsOption {
+	return func(opts *getAdminClaimsOptions) {
+		opts.filenumber = filenumber
+	}
+}
+
+func WithAdminIncludeInactive(include bool) GetAdminClaimsOption {
+	return func(opts *getAdminClaimsOptions) {
+		opts.includeInactive = include
+	}
+}
+
+func WithDocFiles(include bool) GetAdminClaimsOption {
+	return func(opts *getAdminClaimsOptions) {
+		opts.docfiles = include
+	}
+}
+
+func WithLogTrail(include bool) GetAdminClaimsOption {
+	return func(opts *getAdminClaimsOptions) {
+		opts.logtrail = include
+	}
+}
+
+func (s *ClaimsService) GetAdminClaims(ctx context.Context, opts ...GetAdminClaimsOption) ([]AdminClaim, error) {
+	options := getAdminClaimsOptions{includeInactive: false, docfiles: false, logtrail: false}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	u, _ := url.Parse(s.client.BaseUrl + "/getadminclaims")
+	queryParams := url.Values{}
+	if options.filenumber != nil {
+		queryParams.Add("filenumber", fmt.Sprintf("%d", *options.filenumber))
+	}
+	queryParams.Add("includeinactive", fmt.Sprintf("%t", options.includeInactive))
+	queryParams.Add("docfiles", fmt.Sprintf("%t", options.docfiles))
+	queryParams.Add("logtrail", fmt.Sprintf("%t", options.logtrail))
+	u.RawQuery = queryParams.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.client.AuthToken))
+
+	resp, err := s.client.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if err := checkResponse(resp); err != nil {
+		return nil, err
+	}
+
+	var claims []AdminClaim
 	if err := json.Unmarshal(bodyBytes, &claims); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
