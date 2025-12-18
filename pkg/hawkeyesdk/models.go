@@ -101,7 +101,7 @@ type Claim struct {
 	RenterName           string     `json:"rentername,omitempty"`
 	RANumber             string     `json:"ranumber,omitempty"`
 	InsuredName          string     `json:"insuredname,omitempty"`
-	InsCompaniesID       string     `json:"inscompaniesid,omitempty"`
+	InsuranceCompany     string     `json:"insurancecompany,omitempty"`
 	ClaimNumber          string     `json:"claimnumber,omitempty"`
 	PolicyNumber         string     `json:"policynumber,omitempty"`
 	DateOfLoss           string     `json:"dateofloss,omitempty"`
