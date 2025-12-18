@@ -472,7 +472,7 @@ type AdminClaim struct {
 	PoliceFire               string     `json:"policefire,omitempty"`
 	Salvage                  string     `json:"salvage,omitempty"`
 	UseOfExpert              string     `json:"useofexpert,omitempty"`
-	BodilyInjury             string     `json:"bodilyinjury,omitempty"`
+	BodilyInjury             float32    `json:"bodilyinjury,omitempty"`
 	DocFiles                 []DocFile  `json:"docfiles,omitempty"`
 	LogTrail                 []LogTrail `json:"logtrail,omitempty"`
 	PaymentMethod            string     `json:"paymentmethod,omitempty"`
