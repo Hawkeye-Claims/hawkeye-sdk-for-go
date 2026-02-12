@@ -56,7 +56,7 @@ func (s *LogTrailsService) CreateLogTrail(ctx context.Context, filenumber int, a
 		return ApiResponse{}, fmt.Errorf("failed to marshal post data: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.client.BaseUrl+"/createLogTailEntry", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.client.BaseUrl+"/createLogTrailEntry", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return ApiResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}
