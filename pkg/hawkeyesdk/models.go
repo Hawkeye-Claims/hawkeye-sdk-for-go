@@ -30,6 +30,8 @@ const (
 	CHECK_IN_VIDEO
 	CHECK_OUT_VIDEO
 	CONDITION_REPORT
+	CLAIM_DETAILS_REPORT
+	CLAIM_STATUS_REPORT
 	DAMAGE_ASSESSMENT
 	DEDUCTIBLE_REQUEST_FINAL_NOTICE
 	DEDUCTIBLE_REQUEST_FIRST_NOTICE
@@ -182,6 +184,10 @@ func (d DocType) String() string {
 		return "Check-out Video (Pick up)"
 	case CONDITION_REPORT:
 		return "Condition Report"
+	case CLAIM_DETAILS_REPORT:
+		return "Claim Details Report"
+	case CLAIM_STATUS_REPORT:
+		return "Claim Status Report"
 	case DAMAGE_ASSESSMENT:
 		return "Damage Assessment"
 	case DEDUCTIBLE_REQUEST_FINAL_NOTICE:
