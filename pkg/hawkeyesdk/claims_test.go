@@ -177,3 +177,22 @@ func TestClaimPostRequiredFields(t *testing.T) {
 		t.Fatalf("expected helper to return copy; got %v", fresh)
 	}
 }
+
+func TestAdminClaimUnmarshalJSON_SanitizesVehMileage(t *testing.T) {
+	t.Parallel()
+
+	var claim AdminClaim
+	if err := json.Unmarshal([]byte(`{"vehmileage":"12.345.678"}`), &claim); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if claim.VehMileage != 12345678 {
+		t.Fatalf("unexpected veh mileage: %d", claim.VehMileage)
+	}
+
+	if err := json.Unmarshal([]byte(`{"vehmileage":987654}`), &claim); err != nil {
+		t.Fatalf("expected no error for numeric mileage, got %v", err)
+	}
+	if claim.VehMileage != 987654 {
+		t.Fatalf("unexpected numeric veh mileage: %d", claim.VehMileage)
+	}
+}

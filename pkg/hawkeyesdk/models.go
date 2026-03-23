@@ -3,6 +3,7 @@ package hawkeyesdk
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -297,6 +298,69 @@ func (d *DocType) UnmarshalJSON(data []byte) error {
 		}
 	}
 	return fmt.Errorf("invalid document type: %s", s)
+}
+
+func parseSanitizedInt(data []byte) (int, error) {
+	var i int
+	if err := json.Unmarshal(data, &i); err == nil {
+		return i, nil
+	}
+
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return 0, err
+	}
+
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, nil
+	}
+
+	s = strings.ReplaceAll(s, ".", "")
+	s = strings.ReplaceAll(s, ",", "")
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("could not parse integer from %q", s)
+	}
+
+	return i, nil
+}
+
+func (a *AdminClaim) UnmarshalJSON(data []byte) error {
+	type adminClaimAlias AdminClaim
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	vehMileageRaw, hasVehMileage := raw["vehmileage"]
+	if hasVehMileage {
+		delete(raw, "vehmileage")
+	}
+
+	normalizedData, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
+
+	var alias adminClaimAlias
+	if err := json.Unmarshal(normalizedData, &alias); err != nil {
+		return err
+	}
+
+	*a = AdminClaim(alias)
+
+	if hasVehMileage {
+		vehMileage, err := parseSanitizedInt(vehMileageRaw)
+		if err != nil {
+			return fmt.Errorf("invalid vehmileage: %w", err)
+		}
+		a.VehMileage = vehMileage
+	}
+
+	return nil
 }
 
 // The below applies only to Admin API users

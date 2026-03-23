@@ -15,7 +15,7 @@ func TestLogTrailsService_CreateLogTrail_Success(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Fatalf("expected POST, got %s", r.Method)
 		}
-		if r.URL.Path != "/createLogTailEntry" {
+		if r.URL.Path != "/createLogTrailEntry" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 		var payload struct {
