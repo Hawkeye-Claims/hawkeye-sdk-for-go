@@ -559,4 +559,5 @@ type AdminClaim struct {
 	PolicyStartDate          string     `json:"policystartdate,omitempty"`
 	PolicyEndDate            string     `json:"policyenddate,omitempty"`
 	VehicleOwner             string     `json:"vehicleowner,omitempty"`
+	Status                   string     `json:"gaugestat,omitempty"`
 }
