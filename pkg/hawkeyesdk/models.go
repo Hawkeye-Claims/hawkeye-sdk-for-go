@@ -91,6 +91,14 @@ type LogTrail struct {
 	User     string `json:"user"`
 }
 
+type LoggedTime struct {
+	Date       string  `json:"date"`
+	Filenumber int     `json:"filenumber"`
+	User       string  `json:"user"`
+	Email      string  `json:"email"`
+	Time       float32 `json:"loggedtime"`
+}
+
 type InsCompany struct {
 	Id          int    `json:"id"`
 	Name        string `json:"name"`
