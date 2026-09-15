@@ -65,7 +65,14 @@ func startTestServer(t *testing.T) *httptest.Server {
 		}
 		responseLogs := []map[string]any{}
 		for _, log := range seededLogs {
-			seededDate, _ := time.Parse("2006-01-02", log["date"].(string))
+			dateValue, ok := log["date"].(string)
+			if !ok {
+				t.Fatalf("seeded log has an invalid date: %v", log["date"])
+			}
+			seededDate, err := time.Parse("2006-01-02", dateValue)
+			if err != nil {
+				t.Fatalf("seeded log has an invalid date: %v", err)
+			}
 			if !dateFrom.After(seededDate) && !dateTo.Before(seededDate) {
 				responseLogs = append(responseLogs, log)
 			}

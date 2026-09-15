@@ -47,13 +47,13 @@ func (s *LoggedTimeService) GetLoggedTime(ctx context.Context, dateFrom, dateTo 
 	}
 	defer resp.Body.Close()
 
+	if err := checkResponse(resp); err != nil {
+		return nil, err
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("get logged time: read response body: %w", err)
-	}
-
-	if err := checkResponse(resp); err != nil {
-		return nil, err
 	}
 
 	var loggedTimes []LoggedTime
