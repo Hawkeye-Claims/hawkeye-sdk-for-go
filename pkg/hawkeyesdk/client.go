@@ -13,6 +13,7 @@ type ClientSettings struct {
 	DocFiles     *DocFilesService
 	LogTrails    *LogTrailsService
 	InsCompanies *InsCompaniesService
+	LoggedTime   *LoggedTimeService
 }
 
 type Environment string
@@ -63,4 +64,5 @@ func (cfg *ClientSettings) initServices() {
 	cfg.DocFiles = NewDocFilesService(cfg)
 	cfg.LogTrails = NewLogTrailsService(cfg)
 	cfg.InsCompanies = NewInsCompaniesService(cfg)
+	cfg.LoggedTime = NewLoggedTimeService(cfg)
 }

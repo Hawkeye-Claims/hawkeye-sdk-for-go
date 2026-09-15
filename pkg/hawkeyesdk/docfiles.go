@@ -88,12 +88,12 @@ func (s *DocFilesService) UploadFile(filenumber int, fileurl string, opts ...Upl
 	}
 	defer resp.Body.Close()
 
-	if _, err := io.ReadAll(resp.Body); err != nil {
-		return ApiResponse{}, fmt.Errorf("failed to read response body: %w", err)
-	}
-
 	if err := checkResponse(resp); err != nil {
 		return ApiResponse{}, err
+	}
+
+	if _, err := io.ReadAll(resp.Body); err != nil {
+		return ApiResponse{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	return ApiResponse{

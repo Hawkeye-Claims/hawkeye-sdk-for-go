@@ -70,13 +70,13 @@ func (s *LogTrailsService) CreateLogTrail(ctx context.Context, filenumber int, a
 	}
 	defer resp.Body.Close()
 
+	if err := checkResponse(resp); err != nil {
+		return ApiResponse{}, err
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return ApiResponse{}, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if err := checkResponse(resp); err != nil {
-		return ApiResponse{}, err
 	}
 
 	var apiResp ApiResponse

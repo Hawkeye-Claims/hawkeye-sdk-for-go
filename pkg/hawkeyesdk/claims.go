@@ -120,13 +120,13 @@ func (s *ClaimsService) CreateClaim(ctx context.Context, claim ClaimPost) (ApiRe
 	}
 	defer resp.Body.Close()
 
+	if err := checkResponse(resp); err != nil {
+		return apiResp, err
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if err := checkResponse(resp); err != nil {
-		return apiResp, err
 	}
 
 	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
@@ -158,13 +158,13 @@ func (s *ClaimsService) UpdateClaim(ctx context.Context, claim ClaimPost) (ApiRe
 	}
 	defer resp.Body.Close()
 
+	if err := checkResponse(resp); err != nil {
+		return apiResp, err
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return apiResp, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if err := checkResponse(resp); err != nil {
-		return apiResp, err
 	}
 
 	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
@@ -190,13 +190,13 @@ func (s *ClaimsService) GetSingleClaim(ctx context.Context, filenumber int) (Cla
 	}
 	defer resp.Body.Close()
 
+	if err := checkResponse(resp); err != nil {
+		return Claim{}, err
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return Claim{}, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if err := checkResponse(resp); err != nil {
-		return Claim{}, err
 	}
 
 	if err := json.Unmarshal(bodyBytes, &claims); err != nil {
@@ -229,13 +229,13 @@ func (s *ClaimsService) GetClaims(ctx context.Context, opts ...GetClaimsOption) 
 	}
 	defer resp.Body.Close()
 
+	if err := checkResponse(resp); err != nil {
+		return nil, err
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if err := checkResponse(resp); err != nil {
-		return nil, err
 	}
 
 	var claims []Claim
@@ -309,13 +309,13 @@ func (s *ClaimsService) GetAdminClaims(ctx context.Context, opts ...GetAdminClai
 	}
 	defer resp.Body.Close()
 
+	if err := checkResponse(resp); err != nil {
+		return nil, err
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if err := checkResponse(resp); err != nil {
-		return nil, err
 	}
 
 	var claims []AdminClaim

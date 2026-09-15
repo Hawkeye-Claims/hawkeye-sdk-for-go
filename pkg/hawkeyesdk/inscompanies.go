@@ -75,13 +75,13 @@ func (s *InsCompaniesService) GetInsuranceCompanies(ctx context.Context, opts ..
 	}
 	defer resp.Body.Close()
 
+	if err := checkResponse(resp); err != nil {
+		return insCompanies, err
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return insCompanies, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if err := checkResponse(resp); err != nil {
-		return insCompanies, err
 	}
 
 	type fullResponse struct {
