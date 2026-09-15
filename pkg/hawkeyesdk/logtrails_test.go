@@ -1,7 +1,6 @@
 package hawkeyesdk
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -41,7 +40,7 @@ func TestLogTrailsService_CreateLogTrail_Success(t *testing.T) {
 
 	service := NewLogTrailsService(client)
 
-	resp, err := service.CreateLogTrail(context.Background(), 7, "note", WithDate("12/25/2024"))
+	resp, err := service.CreateLogTrail(t.Context(), 7, "note", WithDate("12/25/2024"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -67,7 +66,7 @@ func TestLogTrailsService_CreateLogTrail_HTTPError(t *testing.T) {
 
 	service := NewLogTrailsService(client)
 
-	if _, err := service.CreateLogTrail(context.Background(), 1, "oops"); err == nil {
+	if _, err := service.CreateLogTrail(t.Context(), 1, "oops"); err == nil {
 		t.Fatalf("expected error from server")
 	}
 }

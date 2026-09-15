@@ -1,7 +1,6 @@
 package hawkeyesdk
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -51,7 +50,7 @@ func TestClaimsService_CreateClaim_Success(t *testing.T) {
 
 	service := NewClaimsService(client)
 
-	resp, err := service.CreateClaim(context.Background(), ClaimPost{
+	resp, err := service.CreateClaim(t.Context(), ClaimPost{
 		RenterName:     "Test Renter",
 		InsCompaniesID: "Hawkeye",
 		DateOfLoss:     "2024-01-01",
@@ -85,7 +84,7 @@ func TestClaimsService_CreateClaim_HTTPError(t *testing.T) {
 
 	service := NewClaimsService(client)
 
-	_, err := service.CreateClaim(context.Background(), ClaimPost{
+	_, err := service.CreateClaim(t.Context(), ClaimPost{
 		RenterName:     "Test Renter",
 		InsCompaniesID: "Hawkeye",
 		DateOfLoss:     "2024-01-01",
@@ -110,7 +109,7 @@ func TestClaimsService_CreateClaim_MissingRequiredFields(t *testing.T) {
 
 	service := NewClaimsService(client)
 
-	_, err := service.CreateClaim(context.Background(), ClaimPost{
+	_, err := service.CreateClaim(t.Context(), ClaimPost{
 		RenterName:     "Test Renter",
 		InsCompaniesID: "Hawkeye",
 		DateOfLoss:     "2024-01-01",
@@ -147,7 +146,7 @@ func TestClaimsService_GetSingleClaim_NoResults(t *testing.T) {
 
 	service := NewClaimsService(client)
 
-	_, err := service.GetSingleClaim(context.Background(), 999)
+	_, err := service.GetSingleClaim(t.Context(), 999)
 	if err == nil {
 		t.Fatalf("expected error when no claim returned")
 	}

@@ -1,7 +1,6 @@
 package hawkeyesdk
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -43,7 +42,7 @@ func TestInsCompaniesService_GetInsuranceCompanies_Success(t *testing.T) {
 
 	service := NewInsCompaniesService(client)
 
-	companies, err := service.GetInsuranceCompanies(context.Background())
+	companies, err := service.GetInsuranceCompanies(t.Context())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -93,7 +92,7 @@ func TestInsCompaniesService_GetInsuranceCompanies_WithQuery(t *testing.T) {
 
 	service := NewInsCompaniesService(client)
 
-	companies, err := service.GetInsuranceCompanies(context.Background(), WithQueryParameters("farm", 5))
+	companies, err := service.GetInsuranceCompanies(t.Context(), WithQueryParameters("farm", 5))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -133,7 +132,7 @@ func TestInsCompaniesService_GetInsuranceCompanies_LimitEnforcement(t *testing.T
 
 	service := NewInsCompaniesService(client)
 
-	_, err := service.GetInsuranceCompanies(context.Background(), WithQueryParameters("test", 100))
+	_, err := service.GetInsuranceCompanies(t.Context(), WithQueryParameters("test", 100))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -156,7 +155,7 @@ func TestInsCompaniesService_GetInsuranceCompanies_HTTPError(t *testing.T) {
 
 	service := NewInsCompaniesService(client)
 
-	_, err := service.GetInsuranceCompanies(context.Background())
+	_, err := service.GetInsuranceCompanies(t.Context())
 	if err == nil {
 		t.Fatalf("expected error, got none")
 	}
@@ -182,7 +181,7 @@ func TestInsCompaniesService_GetInsuranceCompanies_UnexpectedFormat(t *testing.T
 
 	service := NewInsCompaniesService(client)
 
-	_, err := service.GetInsuranceCompanies(context.Background())
+	_, err := service.GetInsuranceCompanies(t.Context())
 	if err == nil {
 		t.Fatalf("expected error due to unexpected response format, got none")
 	}
@@ -214,7 +213,7 @@ func TestInsCompaniesService_GetInsuranceCompanies_DefaultLimit(t *testing.T) {
 
 	service := NewInsCompaniesService(client)
 
-	_, err := service.GetInsuranceCompanies(context.Background(), WithQueryParameters("test", 0))
+	_, err := service.GetInsuranceCompanies(t.Context(), WithQueryParameters("test", 0))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
