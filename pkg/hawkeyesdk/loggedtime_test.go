@@ -93,24 +93,46 @@ func TestLoggedTimeService_GetLoggedTime(t *testing.T) {
 		dateFrom      time.Time
 		dateTo        time.Time
 		expectedCount int
+		wantFirst     LoggedTime
 	}{
 		{
 			name:          "full range",
 			dateFrom:      time.Date(2026, 1, 7, 0, 0, 0, 0, time.UTC),
 			dateTo:        time.Date(2026, 1, 11, 0, 0, 0, 0, time.UTC),
 			expectedCount: 3,
+			wantFirst: LoggedTime{
+				Date:       "2026-01-08",
+				Filenumber: 26110431,
+				User:       "Gabriela Sokolow",
+				Email:      "gabriela@hawkeyeclaims.com",
+				Time:       0.1,
+			},
 		},
 		{
 			name:          "date in future defaults to today",
 			dateFrom:      time.Date(2026, 1, 7, 0, 0, 0, 0, time.UTC),
 			dateTo:        time.Now().AddDate(0, 0, 1),
 			expectedCount: 3,
+			wantFirst: LoggedTime{
+				Date:       "2026-01-08",
+				Filenumber: 26110431,
+				User:       "Gabriela Sokolow",
+				Email:      "gabriela@hawkeyeclaims.com",
+				Time:       0.1,
+			},
 		},
 		{
 			name:          "partial range",
 			dateFrom:      time.Date(2026, 1, 9, 0, 0, 0, 0, time.UTC),
 			dateTo:        time.Date(2026, 1, 11, 0, 0, 0, 0, time.UTC),
 			expectedCount: 2,
+			wantFirst: LoggedTime{
+				Date:       "2026-01-09",
+				Filenumber: 26110657,
+				User:       "Kevin Lopes",
+				Email:      "kevin@hawkeyeclaims.com",
+				Time:       0.2,
+			},
 		},
 	}
 
@@ -132,6 +154,9 @@ func TestLoggedTimeService_GetLoggedTime(t *testing.T) {
 			}
 			if len(got) != tt.expectedCount {
 				t.Errorf("GetLoggedTime() got = %v, want %v", len(got), tt.expectedCount)
+			}
+			if len(got) > 0 && tt.wantFirst != (LoggedTime{}) && got[0] != tt.wantFirst {
+				t.Errorf("GetLoggedTime() first record = %+v, want %+v", got[0], tt.wantFirst)
 			}
 		})
 	}
