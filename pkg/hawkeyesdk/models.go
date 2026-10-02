@@ -75,6 +75,10 @@ const (
 	VENDOR_INVOICE
 	INTERIM_INVOICE
 	FINAL_INVOICE
+	INCIDENT_REPORT_ACORD
+
+	// docTypeCount bounds name lookups; keep it last.
+	docTypeCount
 )
 
 type DocFile struct {
@@ -281,6 +285,8 @@ func (d DocType) String() string {
 		return "Interim Invoice"
 	case FINAL_INVOICE:
 		return "Final Invoice"
+	case INCIDENT_REPORT_ACORD:
+		return "Incident Report (ACORD)"
 	default:
 		return "Uncategorized API Document"
 	}
@@ -299,13 +305,16 @@ func (d *DocType) UnmarshalJSON(data []byte) error {
 	}
 
 	s = strings.TrimSpace(s)
-	for dt := DEFAULT; dt <= FINAL_INVOICE; dt++ {
+	for dt := range docTypeCount {
 		if strings.EqualFold(s, dt.String()) {
 			*d = dt
 			return nil
 		}
 	}
-	return fmt.Errorf("invalid document type: %s", s)
+	// Hawk adds document categories without notice. An unrecognized name
+	// must not prevent decoding the claim, so it falls back to DEFAULT.
+	*d = DEFAULT
+	return nil
 }
 
 func parseSanitizedInt(data []byte) (int, error) {
@@ -314,9 +323,15 @@ func parseSanitizedInt(data []byte) (int, error) {
 		return i, nil
 	}
 
+	// A mistyped period can reach us either inside a string ("12.345.678")
+	// or as a JSON number (45.000). Both are sanitized the same way.
 	var s string
+	var n json.Number
 	if err := json.Unmarshal(data, &s); err != nil {
-		return 0, err
+		if numberErr := json.Unmarshal(data, &n); numberErr != nil {
+			return 0, err
+		}
+		s = n.String()
 	}
 
 	s = strings.TrimSpace(s)
@@ -497,7 +512,7 @@ type AdminClaim struct {
 	AssistAdjID              int        `json:"assist_adjid,omitempty"`
 	AmtInv                   float32    `json:"amt_inv,omitempty"`
 	HCAdjuster               string     `json:"hcadjuster,omitempty"`
-	HCAjusterEmail           string     `json:"hcajusteremail,omitempty"`
+	HCAjusterEmail           string     `json:"hcadjusteremail,omitempty"`
 	HCAssistantAdjuster      string     `json:"hcassistantadjuster,omitempty"`
 	Appraiser                string     `json:"appraiser,omitempty"`
 	AppraiserDeskStandardFee float32    `json:"appraiserdeskstandardfee,omitempty"`

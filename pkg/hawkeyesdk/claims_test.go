@@ -194,4 +194,55 @@ func TestAdminClaimUnmarshalJSON_SanitizesVehMileage(t *testing.T) {
 	if claim.VehMileage != 987654 {
 		t.Fatalf("unexpected numeric veh mileage: %d", claim.VehMileage)
 	}
+
+	for raw, want := range map[string]int{`45.000`: 45000, `45000.5`: 450005, `"45000."`: 45000} {
+		if err := json.Unmarshal([]byte(`{"vehmileage":`+raw+`}`), &claim); err != nil {
+			t.Fatalf("expected no error for mileage %s, got %v", raw, err)
+		}
+		if claim.VehMileage != want {
+			t.Fatalf("mileage %s: expected %d, got %d", raw, want, claim.VehMileage)
+		}
+	}
+}
+
+func TestAdminClaimUnmarshalJSON_DecodesHCAdjusterEmail(t *testing.T) {
+	t.Parallel()
+
+	var claim AdminClaim
+	payload := `{"hcadjuster":"Adjuster Name","hcadjusteremail":"adjuster@hawkeyeclaims.test"}`
+	if err := json.Unmarshal([]byte(payload), &claim); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if claim.HCAjusterEmail != "adjuster@hawkeyeclaims.test" {
+		t.Fatalf("unexpected hc adjuster email: %q", claim.HCAjusterEmail)
+	}
+}
+
+func TestAdminClaimUnmarshalJSON_DocTypes(t *testing.T) {
+	t.Parallel()
+
+	var claim AdminClaim
+	payload := `{"docfiles":[
+		{"doctype":"Incident Report (ACORD)","filename":"acord.pdf"},
+		{"doctype":"Incident Report","filename":"incident.pdf"},
+		{"doctype":"A Category Hawk Added Later","filename":"new.pdf"}
+	]}`
+	if err := json.Unmarshal([]byte(payload), &claim); err != nil {
+		t.Fatalf("expected unknown doc types not to fail the claim, got %v", err)
+	}
+	want := []DocType{INCIDENT_REPORT_ACORD, INCIDENT_REPORT, DEFAULT}
+	if len(claim.DocFiles) != len(want) {
+		t.Fatalf("expected %d doc files, got %d", len(want), len(claim.DocFiles))
+	}
+	for i, doc := range claim.DocFiles {
+		if doc.Doctype != want[i] {
+			t.Fatalf("doc %d: expected %v, got %v", i, want[i], doc.Doctype)
+		}
+	}
+	if INCIDENT_REPORT_ACORD.String() != "Incident Report (ACORD)" {
+		t.Fatalf("unexpected ACORD name: %q", INCIDENT_REPORT_ACORD.String())
+	}
+	if FINAL_INVOICE != 57 {
+		t.Fatalf("existing doc type values must not shift; FINAL_INVOICE = %d", FINAL_INVOICE)
+	}
 }
