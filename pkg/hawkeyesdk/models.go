@@ -75,7 +75,6 @@ const (
 	VENDOR_INVOICE
 	INTERIM_INVOICE
 	FINAL_INVOICE
-	// Appended after FINAL_INVOICE so existing numeric values do not shift.
 	INCIDENT_REPORT_ACORD
 
 	// docTypeCount bounds name lookups; keep it last.
@@ -306,7 +305,7 @@ func (d *DocType) UnmarshalJSON(data []byte) error {
 	}
 
 	s = strings.TrimSpace(s)
-	for dt := DEFAULT; dt < docTypeCount; dt++ {
+	for dt := range docTypeCount {
 		if strings.EqualFold(s, dt.String()) {
 			*d = dt
 			return nil
