@@ -1,3 +1,3 @@
 module github.com/Hawkeye-Claims/hawkeye-sdk-for-go
 
-go 1.26.0
+go 1.27
