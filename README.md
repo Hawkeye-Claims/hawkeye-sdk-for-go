@@ -13,7 +13,7 @@ A lightweight Go client for interacting with the Hawkeye Claims API. The SDK wra
 
 ## Installation
 
-Make sure you are using Go 1.22 or newer. Then add the module to your project:
+Make sure you are using Go 1.27 or newer. Then add the module to your project:
 
 ```bash
 go get github.com/Hawkeye-Claims/hawkeyesdk@latest
@@ -156,7 +156,7 @@ go test ./...
 ## Contributing
 
 1. Fork the repository and create a feature branch.
-2. Install Go 1.22 or newer.
+2. Install Go 1.27 or newer.
 3. Run `go test ./...` before opening a pull request.
 4. Describe the context of your change clearly—especially any new Hawkeye endpoints or models.
 
