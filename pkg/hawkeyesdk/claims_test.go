@@ -263,6 +263,28 @@ func TestAdminClaimUnmarshalJSON_CoercesStringNumerics(t *testing.T) {
 	}
 }
 
+func TestAdminClaimUnmarshalJSON_SettlementDateAndRiskLocation(t *testing.T) {
+	t.Parallel()
+
+	var claims []AdminClaim
+	payload := `[
+		{"settlementconfirmed":"2026-10-16","locationofrisklocationid":"NY"},
+		{"settlementconfirmed":null,"locationofrisklocationid":null}
+	]`
+	if err := json.Unmarshal([]byte(payload), &claims); err != nil {
+		t.Fatalf("expected date and location strings to decode, got %v", err)
+	}
+	if len(claims) != 2 {
+		t.Fatalf("expected 2 claims, got %d", len(claims))
+	}
+	if claims[0].SettlementConfirmed != "2026-10-16" || claims[0].LocationOfRiskLocationID != "NY" {
+		t.Fatalf("unexpected settlement date or risk location: %q, %q", claims[0].SettlementConfirmed, claims[0].LocationOfRiskLocationID)
+	}
+	if claims[1].SettlementConfirmed != "" || claims[1].LocationOfRiskLocationID != "" {
+		t.Fatal("expected null settlement date and risk location to decode as empty strings")
+	}
+}
+
 func TestAdminClaimUnmarshalJSON_DecodesHCAdjusterEmail(t *testing.T) {
 	t.Parallel()
 

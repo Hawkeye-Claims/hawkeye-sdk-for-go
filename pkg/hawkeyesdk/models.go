@@ -671,7 +671,7 @@ type AdminClaimInsuranceSection struct {
 	ExchangeRate               float32 `json:"exchangerate,omitempty"`
 	RiskInceptionDate          string  `json:"riskinceptiondate,omitempty"`
 	RiskExpiryDate             string  `json:"riskexpirydate,omitempty"`
-	LocationOfRiskLocationID   int     `json:"locationofrisklocationid,omitempty"`
+	LocationOfRiskLocationID   string  `json:"locationofrisklocationid,omitempty"`
 	LocationOfRiskCountry      string  `json:"locationofriskcountry,omitempty"`
 	StateOfFiling              string  `json:"stateoffiling,omitempty"`
 	PeriodOfCoverNarrative     string  `json:"periodofcovernarrative,omitempty"`
@@ -766,7 +766,7 @@ type AdminClaimSettlementSection struct {
 	SettlementOther           float32 `json:"settlement_other,omitempty"`
 	SettlementDeductible      float32 `json:"settlement_deductable,omitempty"`
 	SettlementTotalLoss       float32 `json:"settlement_totalloss,omitempty"`
-	SettlementConfirmed       bool    `json:"settlementconfirmed,omitempty"`
+	SettlementConfirmed       string  `json:"settlementconfirmed,omitempty"`
 	DateClaimAmountAgreedWith string  `json:"dateclaimamountagreedwith,omitempty"`
 	DateClaimAmountAgreed     string  `json:"dateclaimamountagreed,omitempty"`
 	Supplement                float32 `json:"supplement,omitempty"`
