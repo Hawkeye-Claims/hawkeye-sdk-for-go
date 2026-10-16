@@ -351,6 +351,38 @@ func parseSanitizedInt(data []byte) (int, error) {
 	return i, nil
 }
 
+// parseStrictInt parses an unambiguous integer: grouping commas, spaces,
+// and currency symbols are dropped, but embedded periods are rejected
+// instead of silently mangled. Period stripping stays exclusive to
+// vehmileage via parseSanitizedInt.
+func parseStrictInt(data []byte) (int, error) {
+	var i int
+	if err := json.Unmarshal(data, &i); err == nil {
+		return i, nil
+	}
+
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return 0, err
+	}
+
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, nil
+	}
+
+	s = strings.ReplaceAll(s, ",", "")
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, "$", "")
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("could not parse integer from %q", s)
+	}
+
+	return i, nil
+}
+
 func parseSanitizedFloat(data []byte) (float32, error) {
 	var f float64
 	if err := json.Unmarshal(data, &f); err == nil {
@@ -429,9 +461,13 @@ func (a *AdminClaim) UnmarshalJSON(data []byte) error {
 	}
 
 	// The endpoint encodes some numerics as strings ("123.45", "").
-	// Coerce those to numbers before standard decoding.
+	// Coerce those to numbers before standard decoding. Like
+	// encoding/json, fall back to a case-insensitive key match.
 	for key, value := range raw {
 		kind, numeric := adminClaimNumericKinds[key]
+		if !numeric {
+			kind, numeric = adminClaimNumericKinds[strings.ToLower(key)]
+		}
 		if !numeric {
 			continue
 		}
@@ -447,7 +483,7 @@ func (a *AdminClaim) UnmarshalJSON(data []byte) error {
 			raw[key] = []byte(strconv.FormatFloat(float64(f), 'f', -1, 32))
 			continue
 		}
-		i, err := parseSanitizedInt(value)
+		i, err := parseStrictInt(value)
 		if err != nil {
 			return fmt.Errorf("invalid %s: %w", key, err)
 		}

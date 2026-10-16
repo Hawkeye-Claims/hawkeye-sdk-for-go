@@ -233,6 +233,24 @@ func TestAdminClaimUnmarshalJSON_CoercesStringNumerics(t *testing.T) {
 		t.Fatalf("unexpected docsmissing: %d", claim.DocsMissing)
 	}
 
+	if err := json.Unmarshal([]byte(`{"docsmissing":"1,234"}`), &claim); err != nil {
+		t.Fatalf("expected no error for grouped docsmissing, got %v", err)
+	}
+	if claim.DocsMissing != 1234 {
+		t.Fatalf("unexpected grouped docsmissing: %d", claim.DocsMissing)
+	}
+
+	if err := json.Unmarshal([]byte(`{"customerid":"1.5"}`), &claim); err == nil {
+		t.Fatalf("expected error for non-integer customerid, got nil")
+	}
+
+	if err := json.Unmarshal([]byte(`{"DemandOffer":"$123.45"}`), &claim); err != nil {
+		t.Fatalf("expected no error for capitalized demandoffer, got %v", err)
+	}
+	if claim.DemandOffer != 123.45 {
+		t.Fatalf("unexpected capitalized demandoffer: %v", claim.DemandOffer)
+	}
+
 	if err := json.Unmarshal([]byte(`{"demandoffer":"abc"}`), &claim); err == nil {
 		t.Fatalf("expected error for non-numeric demandoffer, got nil")
 	}
