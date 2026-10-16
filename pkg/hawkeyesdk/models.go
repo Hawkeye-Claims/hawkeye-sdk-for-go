@@ -458,6 +458,16 @@ func (a *AdminClaim) UnmarshalJSON(data []byte) error {
 	vehMileageRaw, hasVehMileage := raw["vehmileage"]
 	if hasVehMileage {
 		delete(raw, "vehmileage")
+	} else {
+		// Like encoding/json, match the mileage key case-insensitively
+		// so variants use the mileage parser, not the strict one below.
+		for key, value := range raw {
+			if strings.EqualFold(key, "vehmileage") {
+				vehMileageRaw, hasVehMileage = value, true
+				delete(raw, key)
+				break
+			}
+		}
 	}
 
 	// The endpoint encodes some numerics as strings ("123.45", "").

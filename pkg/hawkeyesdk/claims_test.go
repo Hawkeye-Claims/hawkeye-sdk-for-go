@@ -195,6 +195,13 @@ func TestAdminClaimUnmarshalJSON_SanitizesVehMileage(t *testing.T) {
 		t.Fatalf("unexpected numeric veh mileage: %d", claim.VehMileage)
 	}
 
+	if err := json.Unmarshal([]byte(`{"VehMileage":"12.345.678"}`), &claim); err != nil {
+		t.Fatalf("expected no error for capitalized mileage, got %v", err)
+	}
+	if claim.VehMileage != 12345678 {
+		t.Fatalf("unexpected capitalized veh mileage: %d", claim.VehMileage)
+	}
+
 	for raw, want := range map[string]int{`45.000`: 45000, `45000.5`: 450005, `"45000."`: 45000} {
 		if err := json.Unmarshal([]byte(`{"vehmileage":`+raw+`}`), &claim); err != nil {
 			t.Fatalf("expected no error for mileage %s, got %v", raw, err)
