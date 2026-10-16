@@ -195,6 +195,13 @@ func TestAdminClaimUnmarshalJSON_SanitizesVehMileage(t *testing.T) {
 		t.Fatalf("unexpected numeric veh mileage: %d", claim.VehMileage)
 	}
 
+	if err := json.Unmarshal([]byte(`{"VehMileage":"12.345.678"}`), &claim); err != nil {
+		t.Fatalf("expected no error for capitalized mileage, got %v", err)
+	}
+	if claim.VehMileage != 12345678 {
+		t.Fatalf("unexpected capitalized veh mileage: %d", claim.VehMileage)
+	}
+
 	for raw, want := range map[string]int{`45.000`: 45000, `45000.5`: 450005, `"45000."`: 45000} {
 		if err := json.Unmarshal([]byte(`{"vehmileage":`+raw+`}`), &claim); err != nil {
 			t.Fatalf("expected no error for mileage %s, got %v", raw, err)
@@ -202,6 +209,57 @@ func TestAdminClaimUnmarshalJSON_SanitizesVehMileage(t *testing.T) {
 		if claim.VehMileage != want {
 			t.Fatalf("mileage %s: expected %d, got %d", raw, want, claim.VehMileage)
 		}
+	}
+}
+
+func TestAdminClaimUnmarshalJSON_CoercesStringNumerics(t *testing.T) {
+	t.Parallel()
+
+	for raw, want := range map[string]float32{
+		`"$123.45"`:   123.45,
+		`"123.45"`:    123.45,
+		`"$1,234.56"`: 1234.56,
+		`""`:          0,
+		`123.45`:      123.45,
+		`null`:        0,
+	} {
+		var claim AdminClaim
+		if err := json.Unmarshal([]byte(`{"demandoffer":`+raw+`}`), &claim); err != nil {
+			t.Fatalf("demandoffer %s: expected no error, got %v", raw, err)
+		}
+		if claim.DemandOffer != want {
+			t.Fatalf("demandoffer %s: expected %v, got %v", raw, want, claim.DemandOffer)
+		}
+	}
+
+	var claim AdminClaim
+	if err := json.Unmarshal([]byte(`{"docsmissing":"9"}`), &claim); err != nil {
+		t.Fatalf("expected no error for string docsmissing, got %v", err)
+	}
+	if claim.DocsMissing != 9 {
+		t.Fatalf("unexpected docsmissing: %d", claim.DocsMissing)
+	}
+
+	if err := json.Unmarshal([]byte(`{"docsmissing":"1,234"}`), &claim); err != nil {
+		t.Fatalf("expected no error for grouped docsmissing, got %v", err)
+	}
+	if claim.DocsMissing != 1234 {
+		t.Fatalf("unexpected grouped docsmissing: %d", claim.DocsMissing)
+	}
+
+	if err := json.Unmarshal([]byte(`{"customerid":"1.5"}`), &claim); err == nil {
+		t.Fatalf("expected error for non-integer customerid, got nil")
+	}
+
+	if err := json.Unmarshal([]byte(`{"DemandOffer":"$123.45"}`), &claim); err != nil {
+		t.Fatalf("expected no error for capitalized demandoffer, got %v", err)
+	}
+	if claim.DemandOffer != 123.45 {
+		t.Fatalf("unexpected capitalized demandoffer: %v", claim.DemandOffer)
+	}
+
+	if err := json.Unmarshal([]byte(`{"demandoffer":"abc"}`), &claim); err == nil {
+		t.Fatalf("expected error for non-numeric demandoffer, got nil")
 	}
 }
 
