@@ -3,6 +3,7 @@ package hawkeyesdk
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -350,6 +351,70 @@ func parseSanitizedInt(data []byte) (int, error) {
 	return i, nil
 }
 
+func parseSanitizedFloat(data []byte) (float32, error) {
+	var f float64
+	if err := json.Unmarshal(data, &f); err == nil {
+		return float32(f), nil
+	}
+
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return 0, err
+	}
+
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, nil
+	}
+
+	// Thousand separators ("1,234.56") and currency symbols ("$123.45")
+	// carry no value; drop them.
+	s = strings.ReplaceAll(s, ",", "")
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, "$", "")
+	// A mistyped thousand separator ("12.345.678") leaves several
+	// periods; only the last one can be the decimal point.
+	if strings.Count(s, ".") > 1 {
+		s = strings.ReplaceAll(s, ".", "")
+	}
+
+	f, err := strconv.ParseFloat(s, 32)
+	if err != nil {
+		return 0, fmt.Errorf("could not parse float from %q", s)
+	}
+
+	return float32(f), nil
+}
+
+// adminClaimNumericKinds maps JSON keys of AdminClaim's float32 and int
+// fields (including embedded sections) to their kind, so string-encoded
+// numbers from the endpoint can be coerced before decoding.
+var adminClaimNumericKinds = numericKinds(reflect.TypeFor[AdminClaim]())
+
+func numericKinds(t reflect.Type) map[string]reflect.Kind {
+	kinds := make(map[string]reflect.Kind)
+	var walk func(rt reflect.Type)
+	walk = func(rt reflect.Type) {
+		for i := range rt.NumField() {
+			f := rt.Field(i)
+			if f.Anonymous && f.Type.Kind() == reflect.Struct {
+				walk(f.Type)
+				continue
+			}
+			tag := strings.Split(f.Tag.Get("json"), ",")[0]
+			if tag == "" || tag == "-" {
+				continue
+			}
+			switch f.Type.Kind() {
+			case reflect.Float32, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				kinds[tag] = f.Type.Kind()
+			}
+		}
+	}
+	walk(t)
+	return kinds
+}
+
 func (a *AdminClaim) UnmarshalJSON(data []byte) error {
 	type adminClaimAlias AdminClaim
 
@@ -361,6 +426,32 @@ func (a *AdminClaim) UnmarshalJSON(data []byte) error {
 	vehMileageRaw, hasVehMileage := raw["vehmileage"]
 	if hasVehMileage {
 		delete(raw, "vehmileage")
+	}
+
+	// The endpoint encodes some numerics as strings ("123.45", "").
+	// Coerce those to numbers before standard decoding.
+	for key, value := range raw {
+		kind, numeric := adminClaimNumericKinds[key]
+		if !numeric {
+			continue
+		}
+		var asString string
+		if err := json.Unmarshal(value, &asString); err != nil {
+			continue // number, null, or other: leave for standard decoding
+		}
+		if kind == reflect.Float32 {
+			f, err := parseSanitizedFloat(value)
+			if err != nil {
+				return fmt.Errorf("invalid %s: %w", key, err)
+			}
+			raw[key] = []byte(strconv.FormatFloat(float64(f), 'f', -1, 32))
+			continue
+		}
+		i, err := parseSanitizedInt(value)
+		if err != nil {
+			return fmt.Errorf("invalid %s: %w", key, err)
+		}
+		raw[key] = []byte(strconv.Itoa(i))
 	}
 
 	normalizedData, err := json.Marshal(raw)

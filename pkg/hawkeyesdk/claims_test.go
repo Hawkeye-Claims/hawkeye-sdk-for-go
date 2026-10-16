@@ -205,6 +205,39 @@ func TestAdminClaimUnmarshalJSON_SanitizesVehMileage(t *testing.T) {
 	}
 }
 
+func TestAdminClaimUnmarshalJSON_CoercesStringNumerics(t *testing.T) {
+	t.Parallel()
+
+	for raw, want := range map[string]float32{
+		`"$123.45"`:   123.45,
+		`"123.45"`:    123.45,
+		`"$1,234.56"`: 1234.56,
+		`""`:          0,
+		`123.45`:      123.45,
+		`null`:        0,
+	} {
+		var claim AdminClaim
+		if err := json.Unmarshal([]byte(`{"demandoffer":`+raw+`}`), &claim); err != nil {
+			t.Fatalf("demandoffer %s: expected no error, got %v", raw, err)
+		}
+		if claim.DemandOffer != want {
+			t.Fatalf("demandoffer %s: expected %v, got %v", raw, want, claim.DemandOffer)
+		}
+	}
+
+	var claim AdminClaim
+	if err := json.Unmarshal([]byte(`{"docsmissing":"9"}`), &claim); err != nil {
+		t.Fatalf("expected no error for string docsmissing, got %v", err)
+	}
+	if claim.DocsMissing != 9 {
+		t.Fatalf("unexpected docsmissing: %d", claim.DocsMissing)
+	}
+
+	if err := json.Unmarshal([]byte(`{"demandoffer":"abc"}`), &claim); err == nil {
+		t.Fatalf("expected error for non-numeric demandoffer, got nil")
+	}
+}
+
 func TestAdminClaimUnmarshalJSON_DecodesHCAdjusterEmail(t *testing.T) {
 	t.Parallel()
 
